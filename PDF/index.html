@@ -169,6 +169,7 @@ body{
   font-size:12.5px;cursor:pointer;
 }
 .ghost-btn:hover{border-color:var(--ash);color:#d8d7d2;}
+.ghost-btn.active{border-color:var(--accent);color:#fff;background:rgba(193,68,60,.15);}
 .hint{font-family:var(--mono);font-size:10.5px;color:var(--ash);margin-top:10px;line-height:1.5;}
 
 /* ---------- MAIN / PREVIEW (notebook tool) ---------- */
@@ -189,9 +190,9 @@ body{
 .md-cell img{max-width:100%;}
 .md-cell table{border-collapse:collapse;width:100%;font-size:.92em;}
 .md-cell table td,.md-cell table th{border:1px solid #ccc8bc;padding:4px 7px;}
-.code-block{background:#f6f5f0;border:1px solid #e4e1d6;border-left:3px solid var(--accent-2);border-radius:3px;overflow:hidden;}
+.code-block{background:#f6f5f0;border:1px solid #e4e1d6;border-left:3px solid var(--accent-2);border-radius:3px;}
 .prompt{font-family:var(--mono);font-size:10px;color:var(--accent-2);margin:0;}
-.code-block .prompt{background:#efece2;padding:4px 10px;border-bottom:1px solid #e4e1d6;}
+.code-block .prompt{background:#efece2;padding:4px 10px;border-bottom:1px solid #e4e1d6;border-radius:2px 2px 0 0;}
 .code-block pre{margin:0;padding:8px 10px 10px;overflow:auto;}
 .code-block code{font-family:var(--mono);white-space:pre;}
 .output-block{margin-top:2px;}
@@ -291,8 +292,11 @@ body{
             <input type="range" id="margin" min="6" max="30" step="1" value="15">
           </div>
           <div class="field">
-            <label>Columns <span class="val" id="colsVal">1</span></label>
-            <input type="range" id="columns" min="1" max="2" step="1" value="1">
+            <label>Columns</label>
+            <div class="row2" id="columnsToggle">
+              <button type="button" class="ghost-btn col-btn active" data-cols="1" style="margin-top:0;">1 column</button>
+              <button type="button" class="ghost-btn col-btn" data-cols="2" style="margin-top:0;">2 columns</button>
+            </div>
           </div>
         </div>
 
@@ -453,7 +457,16 @@ function updateLabel(key){
   };
   if(map[key]){ const [labelId, f] = map[key]; el(labelId).textContent = f(state[key]); }
 }
-['margin','columns','fontSize','codeFontSize','lineHeight','maxLines','imgWidth'].forEach(k=>bindRange(k,k));
+['margin','fontSize','codeFontSize','lineHeight','maxLines','imgWidth'].forEach(k=>bindRange(k,k));
+
+document.querySelectorAll('.col-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.col-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.columns = parseInt(btn.dataset.cols, 10);
+    scheduleRender();
+  });
+});
 
 el('pageSize').addEventListener('change', e=>{ state.pageSize=e.target.value; scheduleRender(); });
 el('orientation').addEventListener('change', e=>{ state.orientation=e.target.value; scheduleRender(); });
