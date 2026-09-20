@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notebook → PDF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<style>
+:root{
+  --ink:#14171c;
+  --ink-2:#1e2229;
+  --paper:#fffef9;
+  --backdrop:#e6e3da;
+  --line:#33383f;
+  --line-soft:#d8d5cc;
+  --accent:#c1443c;
+  --accent-2:#2f5d62;
+  --ash:#9aa0a8;
+  --text:#e9e8e3;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--sans);
+  background:var(--ink);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+}
+.app-shell{display:grid;grid-template-columns:360px 1fr;min-height:100vh;}
+
+/* ---------- SIDEBAR ---------- */
+.sidebar{
+  background:var(--ink);
+  border-right:1px solid var(--line);
+  padding:28px 24px 40px;
+  overflow-y:auto;
+  height:100vh;
+  position:sticky;
+  top:0;
+}
+.brand{display:flex;align-items:baseline;gap:10px;margin-bottom:4px;}
+.brand .mark{
+  width:11px;height:11px;border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 0 3px rgba(193,68,60,.18);
+  flex:none;
+}
+.brand h1{font-size:17px;margin:0;font-weight:600;letter-spacing:.2px;}
+.brand-sub{
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--ash);
+  margin:0 0 26px 21px;
+}
+.dropzone{
+  border:1.5px dashed var(--line);
+  border-radius:2px;
+  padding:22px 16px;
+  text-align:center;
+  cursor:pointer;
+  transition:border-color .15s, background .15s;
+  margin-bottom:8px;
+}
+.dropzone:hover, .dropzone.drag{
+  border-color:var(--accent);
+  background:rgba(193,68,60,.06);
+}
+.dropzone .dz-title{font-size:13px;font-weight:500;margin-bottom:4px;}
+.dropzone .dz-sub{font-family:var(--mono);font-size:11px;color:var(--ash);}
+#fileInput{display:none;}
+.filename{
+  font-family:var(--mono);
+  font-size:11.5px;
+  color:var(--accent-2);
+  background:rgba(47,93,98,.15);
+  border:1px solid rgba(47,93,98,.4);
+  padding:6px 10px;
+  margin-top:10px;
+  word-break:break-all;
+  display:none;
+}
+
+.section{margin-top:28px;}
+.section-label{
+  font-family:var(--mono);
+  font-size:10.5px;
+  letter-spacing:.06em;
+  color:var(--ash);
+  border-bottom:1px solid var(--line);
+  padding-bottom:6px;
+  margin-bottom:14px;
+}
+.field{margin-bottom:16px;}
+.field label{
+  display:flex;
+  justify-content:space-between;
+  font-size:12.5px;
+  margin-bottom:6px;
+  color:#d8d7d2;
+}
+.field label .val{font-family:var(--mono);color:var(--accent-2);font-size:11.5px;}
+.field select, .field input[type=number]{
+  width:100%;
+  background:var(--ink-2);
+  border:1px solid var(--line);
+  color:var(--text);
+  padding:7px 8px;
+  font-family:var(--sans);
+  font-size:12.5px;
+  border-radius:2px;
+}
+.field input[type=range]{
+  width:100%;
+  accent-color:var(--accent);
+}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.toggle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:8px 0;
+  font-size:12.5px;
+  color:#d8d7d2;
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+.toggle input{accent-color:var(--accent);width:16px;height:16px;}
+
+.stat-box{
+  margin-top:26px;
+  border:1px solid var(--line);
+  padding:14px 16px;
+  background:var(--ink-2);
+}
+.stat-box .big{
+  font-family:var(--mono);
+  font-size:30px;
+  color:var(--accent);
+  line-height:1;
+}
+.stat-box .cap{font-size:11px;color:var(--ash);margin-top:4px;}
+.stat-box .cap b{color:#cfcdc6;font-weight:500;}
+
+.go-btn{
+  width:100%;
+  margin-top:18px;
+  background:var(--accent);
+  color:#fff;
+  border:none;
+  padding:13px 10px;
+  font-family:var(--sans);
+  font-weight:600;
+  font-size:14px;
+  cursor:pointer;
+  letter-spacing:.2px;
+}
+.go-btn:hover{background:#a83b34;}
+.go-btn:disabled{background:#4a4d52;cursor:not-allowed;}
+.hint{font-family:var(--mono);font-size:10.5px;color:var(--ash);margin-top:10px;line-height:1.5;}
+
+/* ---------- MAIN / PREVIEW ---------- */
+.main{
+  background:var(--backdrop);
+  overflow:auto;
+  display:flex;
+  justify-content:center;
+  padding:48px 40px 120px;
+}
+.empty-state{
+  color:#6b6b64;
+  font-family:var(--mono);
+  font-size:13px;
+  margin-top:120px;
+  text-align:center;
+}
+.paper-stage{
+  background:var(--paper);
+  box-shadow:0 24px 60px rgba(0,0,0,.28);
+  position:relative;
+  display:none;
+}
+.page-break-line{
+  position:absolute;
+  left:0;right:0;
+  border-top:1.5px dashed var(--accent-2);
+  opacity:.55;
+}
+.page-break-line span{
+  position:absolute;
+  right:0; top:-16px;
+  font-family:var(--mono);
+  font-size:9.5px;
+  color:var(--accent-2);
+  background:var(--paper);
+  padding:0 4px;
+}
+
+.cells-wrap{color:#20211f;}
+.cell{break-inside:avoid-column;break-inside:avoid-page;margin-bottom:1.1em;}
+.cell.compact{margin-bottom:.55em;}
+
+.md-cell :first-child{margin-top:0;}
+.md-cell{font-family:var(--sans);}
+.md-cell h1,.md-cell h2,.md-cell h3{font-family:var(--sans);font-weight:600;}
+.md-cell pre{background:#f3f1ea;padding:8px;overflow:auto;}
+.md-cell code{font-family:var(--mono);background:#f3f1ea;padding:1px 4px;}
+.md-cell img{max-width:100%;}
+.md-cell table{border-collapse:collapse;width:100%;font-size:.92em;}
+.md-cell table td,.md-cell table th{border:1px solid #ccc8bc;padding:4px 7px;}
+
+.code-block{background:#f6f5f0;border:1px solid #e4e1d6;border-left:3px solid var(--accent-2);}
+.prompt{
+  font-family:var(--mono);
+  font-size:10px;
+  color:var(--accent-2);
+  padding:5px 8px 0;
+}
+.code-block pre{margin:0;padding:8px 10px 10px;overflow:auto;}
+.code-block code{font-family:var(--mono);white-space:pre;}
+
+.output-block{margin-top:2px;}
+.output-block pre{
+  margin:0;
+  padding:8px 10px;
+  overflow:auto;
+  background:#fbfbf8;
+  border-left:3px solid var(--line-soft);
+  font-family:var(--mono);
+  white-space:pre-wrap;
+}
+.output-block pre.stderr{border-left-color:#c1443c;color:#8a2f29;}
+.output-block pre.error{border-left-color:#c1443c;color:#8a2f29;background:#fbf1f0;}
+.output-block img{display:block;margin:4px 0 0;}
+.output-block .truncated-note{
+  font-family:var(--mono);
+  font-size:10px;
+  color:var(--ash);
+  padding:3px 10px;
+  background:#f0efe9;
+}
+.output-block table{border-collapse:collapse;font-size:.85em;}
+.output-block table td,.output-block table th{border:1px solid #ccc8bc;padding:3px 6px;}
+
+@media print{
+  .sidebar,.main .empty-state{display:none !important;}
+  .app-shell{display:block;}
+  .main{padding:0;background:#fff;display:block;}
+  .paper-stage{
+    box-shadow:none !important;
+    width:auto !important;
+    padding:0 !important;
+  }
+  .page-break-line{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand"><div class="mark"></div><h1>Notebook → PDF</h1></div>
+    <p class="brand-sub">.ipynb print compositor</p>
+
+    <div class="dropzone" id="dropzone">
+      <div class="dz-title">Drop a .ipynb file here</div>
+      <div class="dz-sub">or click to browse</div>
+      <input type="file" id="fileInput" accept=".ipynb,application/json">
+    </div>
+    <div class="filename" id="filenameTag"></div>
+
+    <div class="section">
+      <div class="section-label">PAGE SETUP</div>
+      <div class="row2">
+        <div class="field">
+          <label>Size</label>
+          <select id="pageSize">
+            <option value="a4" selected>A4</option>
+            <option value="letter">Letter</option>
+            <option value="legal">Legal</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Orientation</label>
+          <select id="orientation">
+            <option value="portrait" selected>Portrait</option>
+            <option value="landscape">Landscape</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Margins <span class="val" id="marginVal">15 mm</span></label>
+        <input type="range" id="margin" min="6" max="30" step="1" value="15">
+      </div>
+      <div class="field">
+        <label>Columns <span class="val" id="colsVal">1</span></label>
+        <input type="range" id="columns" min="1" max="2" step="1" value="1">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">TYPOGRAPHY</div>
+      <div class="field">
+        <label>Base text size <span class="val" id="fontVal">10.5 pt</span></label>
+        <input type="range" id="fontSize" min="7" max="13" step="0.5" value="10.5">
+      </div>
+      <div class="field">
+        <label>Code size <span class="val" id="codeFontVal">9.5 pt</span></label>
+        <input type="range" id="codeFontSize" min="6" max="12" step="0.5" value="9.5">
+      </div>
+      <div class="field">
+        <label>Line height <span class="val" id="lineVal">1.4</span></label>
+        <input type="range" id="lineHeight" min="1.05" max="1.8" step="0.05" value="1.4">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">TRIM TO FIT — CONTENT</div>
+      <div class="toggle"><span>Compact cell spacing</span><input type="checkbox" id="compact"></div>
+      <div class="toggle"><span>Hide code cells</span><input type="checkbox" id="hideCode"></div>
+      <div class="toggle"><span>Hide markdown cells</span><input type="checkbox" id="hideMd"></div>
+      <div class="toggle"><span>Hide outputs</span><input type="checkbox" id="hideOutputs"></div>
+      <div class="toggle"><span>Hide images in output</span><input type="checkbox" id="hideImages"></div>
+      <div class="toggle"><span>Hide empty cells</span><input type="checkbox" id="hideEmpty" checked></div>
+      <div class="toggle"><span>Show In/Out prompts</span><input type="checkbox" id="showPrompts" checked></div>
+      <div class="field" style="margin-top:12px;">
+        <label>Max output lines <span class="val" id="maxLinesVal">Unlimited</span></label>
+        <input type="range" id="maxLines" min="0" max="60" step="5" value="0">
+      </div>
+      <div class="field">
+        <label>Image max width <span class="val" id="imgWidthVal">100%</span></label>
+        <input type="range" id="imgWidth" min="25" max="100" step="5" value="100">
+      </div>
+    </div>
+
+    <div class="stat-box">
+      <div class="big" id="pageEstimate">–</div>
+      <div class="cap">estimated pages &nbsp;·&nbsp; <b id="cellCount">0</b> cells loaded</div>
+    </div>
+
+    <button class="go-btn" id="printBtn" disabled>Generate PDF (Print)</button>
+    <div class="hint">Opens your browser's print dialog — choose "Save as PDF" as the destination. The dialog's own preview shows the exact final page count.</div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="empty-state" id="emptyState">— no notebook loaded —<br>drop a .ipynb file on the left</div>
+    <div class="paper-stage" id="paperStage">
+      <div class="cells-wrap" id="cellsWrap"></div>
+    </div>
+  </main>
+
+</div>
+
+<style id="page-style"></style>
+
+<script>
+marked.setOptions({ breaks:false, gfm:true });
+
+const state = {
+  pageSize:'a4', orientation:'portrait', margin:15, columns:1,
+  fontSize:10.5, codeFontSize:9.5, lineHeight:1.4,
+  compact:false, hideCode:false, hideMd:false, hideOutputs:false,
+  hideImages:false, hideEmpty:true, showPrompts:true,
+  maxLines:0, imgWidth:100
+};
+
+let notebook = null;
+
+const el = id => document.getElementById(id);
+const MM_PX = 96/25.4;
+const mm = v => v*MM_PX;
+const PAGE_SIZES = { a4:{w:210,h:297}, letter:{w:215.9,h:279.4}, legal:{w:215.9,h:355.6} };
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function stripAnsi(s){ return s.replace(/\x1b\[[0-9;]*m/g,''); }
+function joinSrc(src){
+  if(Array.isArray(src)) return src.join('');
+  return src || '';
+}
+function truncateText(text, maxLines){
+  if(!maxLines || maxLines<=0) return {text, truncated:0};
+  const lines = text.split('\n');
+  if(lines.length<=maxLines) return {text, truncated:0};
+  return { text: lines.slice(0,maxLines).join('\n'), truncated: lines.length-maxLines };
+}
+
+/* ---------- wiring controls ---------- */
+function bindRange(id, key, fmt){
+  const input = el(id);
+  input.addEventListener('input', () => {
+    state[key] = parseFloat(input.value);
+    updateLabel(id, key, fmt);
+    scheduleRender();
+  });
+  updateLabel(id, key, fmt);
+}
+function updateLabel(id,key,fmt){
+  const map = {
+    margin:['marginVal', v=>v+' mm'],
+    columns:['colsVal', v=>v],
+    fontSize:['fontVal', v=>v+' pt'],
+    codeFontSize:['codeFontVal', v=>v+' pt'],
+    lineHeight:['lineVal', v=>v],
+    maxLines:['maxLinesVal', v=> v==0 ? 'Unlimited' : v+' lines'],
+    imgWidth:['imgWidthVal', v=>v+'%']
+  };
+  if(map[key]){
+    const [labelId, f] = map[key];
+    el(labelId).textContent = f(state[key]);
+  }
+}
+bindRange('margin','margin');
+bindRange('columns','columns');
+bindRange('fontSize','fontSize');
+bindRange('codeFontSize','codeFontSize');
+bindRange('lineHeight','lineHeight');
+bindRange('maxLines','maxLines');
+bindRange('imgWidth','imgWidth');
+
+el('pageSize').addEventListener('change', e=>{ state.pageSize=e.target.value; scheduleRender(); });
+el('orientation').addEventListener('change', e=>{ state.orientation=e.target.value; scheduleRender(); });
+
+['compact','hideCode','hideMd','hideOutputs','hideImages','hideEmpty','showPrompts'].forEach(key=>{
+  el(key).addEventListener('change', e=>{ state[key]=e.target.checked; scheduleRender(); });
+});
+
+/* ---------- file loading ---------- */
+const dropzone = el('dropzone');
+const fileInput = el('fileInput');
+dropzone.addEventListener('click', ()=>fileInput.click());
+fileInput.addEventListener('change', e=>{ if(e.target.files[0]) loadFile(e.target.files[0]); });
+['dragenter','dragover'].forEach(ev=>dropzone.addEventListener(ev, e=>{ e.preventDefault(); dropzone.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev=>dropzone.addEventListener(ev, e=>{ e.preventDefault(); dropzone.classList.remove('drag'); }));
+dropzone.addEventListener('drop', e=>{ if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+
+function loadFile(file){
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try{
+      const json = JSON.parse(ev.target.result);
+      let cells = json.cells;
+      if(!cells && json.worksheets){
+        cells = [];
+        json.worksheets.forEach(ws => cells.push(...(ws.cells||[])));
+      }
+      if(!cells) throw new Error('No cells found in file.');
+      notebook = { cells, meta: json.metadata || {} };
+      el('filenameTag').textContent = file.name;
+      el('filenameTag').style.display = 'block';
+      el('emptyState').style.display = 'none';
+      el('paperStage').style.display = 'block';
+      el('printBtn').disabled = false;
+      el('cellCount').textContent = cells.length;
+      scheduleRender();
+    }catch(err){
+      alert('Could not read this notebook: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ---------- rendering ---------- */
+let renderTimer = null;
+function scheduleRender(){
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(render, 90);
+}
+
+function buildCellHTML(cell, idx){
+  const type = cell.cell_type;
+  const source = joinSrc(cell.source);
+  if(state.hideEmpty && !source.trim() && (!cell.outputs || cell.outputs.length===0)) return '';
+
+  if(type === 'markdown'){
+    if(state.hideMd) return '';
+    const html = marked.parse(source);
+    return `<div class="cell ${state.compact?'compact':''} md-cell">${html}</div>`;
+  }
+
+  if(type === 'raw'){
+    if(state.hideCode) return '';
+    return `<div class="cell ${state.compact?'compact':''}"><pre style="font-family:var(--mono);background:#f6f5f0;padding:8px;">${escapeHtml(source)}</pre></div>`;
+  }
+
+  if(type === 'code'){
+    let out = `<div class="cell ${state.compact?'compact':''}">`;
+    if(!state.hideCode){
+      const execCount = cell.execution_count!=null ? cell.execution_count : ' ';
+      const prompt = state.showPrompts ? `<div class="prompt">In [${execCount}]</div>` : '';
+      out += `<div class="code-block">${prompt}<pre><code class="language-python">${escapeHtml(source)}</code></pre></div>`;
+    }
+    if(!state.hideOutputs && cell.outputs && cell.outputs.length){
+      out += renderOutputs(cell.outputs, cell.execution_count);
+    }
+    out += `</div>`;
+    return out;
+  }
+  return '';
+}
+
+function renderOutputs(outputs, execCount){
+  let html = '';
+  outputs.forEach(o=>{
+    if(o.output_type === 'stream'){
+      const text = joinSrc(o.text);
+      const {text:t, truncated} = truncateText(text, state.maxLines);
+      html += `<div class="output-block"><pre class="${o.name==='stderr'?'stderr':''}">${escapeHtml(t)}</pre>`;
+      if(truncated) html += `<div class="truncated-note">… ${truncated} more line(s) truncated</div>`;
+      html += `</div>`;
+    } else if(o.output_type === 'error'){
+      const tb = stripAnsi((o.traceback||[]).join('\n'));
+      const {text:t, truncated} = truncateText(tb, state.maxLines);
+      html += `<div class="output-block"><pre class="error">${escapeHtml(t)}</pre>`;
+      if(truncated) html += `<div class="truncated-note">… ${truncated} more line(s) truncated</div>`;
+      html += `</div>`;
+    } else if(o.output_type === 'execute_result' || o.output_type === 'display_data'){
+      const data = o.data || {};
+      const prompt = (state.showPrompts && o.output_type==='execute_result') ? `<div class="prompt">Out [${execCount!=null?execCount:' '}]</div>` : '';
+      if(data['image/png'] && !state.hideImages){
+        html += `<div class="output-block">${prompt}<img style="max-width:${state.imgWidth}%" src="data:image/png;base64,${data['image/png'].replace(/\n/g,'')}"></div>`;
+      } else if(data['text/html']){
+        const htmlStr = joinSrc(data['text/html']);
+        html += `<div class="output-block">${prompt}${htmlStr}</div>`;
+      } else if(data['text/plain']){
+        const text = joinSrc(data['text/plain']);
+        const {text:t, truncated} = truncateText(text, state.maxLines);
+        html += `<div class="output-block">${prompt}<pre>${escapeHtml(t)}</pre>`;
+        if(truncated) html += `<div class="truncated-note">… ${truncated} more line(s) truncated</div>`;
+        html += `</div>`;
+      }
+    }
+  });
+  return html;
+}
+
+function render(){
+  if(!notebook) return;
+
+  const dims = PAGE_SIZES[state.pageSize];
+  let w = dims.w, h = dims.h;
+  if(state.orientation === 'landscape'){ const t=w; w=h; h=t; }
+  const pageWpx = mm(w);
+  const pageHpx = mm(h);
+  const marginPx = mm(state.margin);
+
+  el('page-style').textContent = `@page { size: ${state.pageSize} ${state.orientation}; margin: ${state.margin}mm; }`;
+
+  const stage = el('paperStage');
+  stage.style.width = pageWpx + 'px';
+  stage.style.padding = marginPx + 'px';
+
+  const cellsWrap = el('cellsWrap');
+  cellsWrap.style.fontSize = state.fontSize + 'pt';
+  cellsWrap.style.lineHeight = state.lineHeight;
+  cellsWrap.style.columnCount = state.columns;
+  cellsWrap.style.columnGap = mm(8) + 'px';
+  cellsWrap.querySelectorAll('.code-block pre, .output-block pre, .prompt').forEach(()=>{});
+
+  const html = notebook.cells.map((c,i)=>buildCellHTML(c,i)).join('');
+  cellsWrap.innerHTML = html || '<div style="font-family:var(--mono);font-size:12px;color:#999;">Nothing to show with current filters.</div>';
+
+  // apply code font size after render (needs live nodes)
+  cellsWrap.querySelectorAll('.code-block pre, .code-block code, .output-block pre').forEach(node=>{
+    node.style.fontSize = state.codeFontSize + 'pt';
+  });
+
+  // syntax highlight
+  cellsWrap.querySelectorAll('.code-block code').forEach(block=>{
+    try{ hljs.highlightElement(block); }catch(e){}
+  });
+
+  // clear old guide lines
+  stage.querySelectorAll('.page-break-line').forEach(n=>n.remove());
+
+  requestAnimationFrame(()=>{
+    const contentH = cellsWrap.scrollHeight;
+    const availableH = pageHpx - marginPx*2;
+    const pages = Math.max(1, Math.ceil(contentH / availableH));
+    el('pageEstimate').textContent = '~' + pages;
+
+    for(let p=1; p<pages; p++){
+      const line = document.createElement('div');
+      line.className = 'page-break-line';
+      line.style.top = (marginPx + p*availableH) + 'px';
+      line.innerHTML = `<span>page ${p+1}</span>`;
+      stage.appendChild(line);
+    }
+  });
+}
+
+el('printBtn').addEventListener('click', ()=> window.print());
+</script>
+</body>
+</html>
