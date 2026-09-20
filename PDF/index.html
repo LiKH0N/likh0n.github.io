@@ -189,11 +189,13 @@ body{
 .md-cell img{max-width:100%;}
 .md-cell table{border-collapse:collapse;width:100%;font-size:.92em;}
 .md-cell table td,.md-cell table th{border:1px solid #ccc8bc;padding:4px 7px;}
-.code-block{background:#f6f5f0;border:1px solid #e4e1d6;border-left:3px solid var(--accent-2);}
-.prompt{font-family:var(--mono);font-size:10px;color:var(--accent-2);padding:5px 8px 0;}
+.code-block{background:#f6f5f0;border:1px solid #e4e1d6;border-left:3px solid var(--accent-2);border-radius:3px;overflow:hidden;}
+.prompt{font-family:var(--mono);font-size:10px;color:var(--accent-2);margin:0;}
+.code-block .prompt{background:#efece2;padding:4px 10px;border-bottom:1px solid #e4e1d6;}
 .code-block pre{margin:0;padding:8px 10px 10px;overflow:auto;}
 .code-block code{font-family:var(--mono);white-space:pre;}
 .output-block{margin-top:2px;}
+.output-block .prompt{padding:5px 10px 0;}
 .output-block pre{margin:0;padding:8px 10px;overflow:auto;background:#fbfbf8;border-left:3px solid var(--line-soft);font-family:var(--mono);white-space:pre-wrap;}
 .output-block pre.stderr{border-left-color:#c1443c;color:#8a2f29;}
 .output-block pre.error{border-left-color:#c1443c;color:#8a2f29;background:#fbf1f0;}
